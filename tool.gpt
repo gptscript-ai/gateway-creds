@@ -1,0 +1,3 @@
+name: token
+
+#!/usr/bin/env python3 ${GPTSCRIPT_TOOL_DIR}/main.py
