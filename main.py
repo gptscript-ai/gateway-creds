@@ -1,8 +1,8 @@
 import datetime
 import json
 import os
+import subprocess
 import sys
-import webbrowser
 from time import sleep
 from uuid import uuid4
 
@@ -11,7 +11,6 @@ import requests
 
 
 def main():
-    gateway_ui_url = os.environ.get("GPTSCRIPT_GATEWAY_UI_URL", "https://gateway.gptscript.ai")
     gateway_url = os.environ.get("GPTSCRIPT_GATEWAY_URL", "https://gateway-api.gptscript.ai")
 
     token, expiration = "", ""
@@ -21,22 +20,25 @@ def main():
 
     if token == "":
         # If there's no existing credential or refresh failed, then create a new one.
-        token, expiration = create_token(gateway_url, gateway_ui_url)
+        token, expiration = create_token(
+            gateway_url,
+            os.environ.get("GPTSCRIPT_GATEWAY_AUTH_SERVICE_NAME", ""),
+        )
 
     print('{"env": {"GPTSCRIPT_GATEWAY_API_KEY": "%s"}, "expiresAt": "%s", "refreshToken": "%s"}' % (
         token, expiration, token,
     ))
 
 
-def create_token(gateway_url: str, gateway_ui_url: str) -> (str, str):
+def create_token(gateway_url: str, service_name: str) -> (str, str):
     token_request_id = str(uuid4())
 
-    resp = requests.post(f"{gateway_url}/api/token-request", json={"id": token_request_id})
+    resp = requests.post(f"{gateway_url}/api/token-request", json={"id": token_request_id, "serviceName": service_name})
     if resp.status_code != 200:
         print(resp.text)
         sys.exit(1)
 
-    webbrowser.open(f"{gateway_ui_url}/login?id={token_request_id}", new=2)
+    subprocess.run([sys.executable, "-m", "webbrowser", "-n", resp.json()["token-path"]], stdout=subprocess.DEVNULL)
 
     token_resp = poll_for_token(gateway_url, token_request_id)
 
