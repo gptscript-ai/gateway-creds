@@ -8,9 +8,11 @@ from uuid import uuid4
 
 import pytz
 import requests
+from gptscript.gptscript import GPTScript
+from gptscript.opts import Options
 
 
-def main():
+async def main():
     gateway_url = os.environ.get("GPTSCRIPT_GATEWAY_URL", "https://gateway-api.gptscript.ai")
 
     token, expiration = "", ""
@@ -20,7 +22,7 @@ def main():
 
     if token == "":
         # If there's no existing credential or refresh failed, then create a new one.
-        token, expiration = create_token(
+        token, expiration = await create_token(
             gateway_url,
             os.environ.get("GPTSCRIPT_GATEWAY_AUTH_SERVICE_NAME", ""),
         )
@@ -30,7 +32,7 @@ def main():
     ))
 
 
-def create_token(gateway_url: str, service_name: str) -> (str, str):
+async def create_token(gateway_url: str, service_name: str) -> (str, str):
     token_request_id = str(uuid4())
 
     resp = requests.post(f"{gateway_url}/api/token-request", json={"id": token_request_id, "serviceName": service_name})
@@ -38,7 +40,24 @@ def create_token(gateway_url: str, service_name: str) -> (str, str):
         print(resp.text)
         sys.exit(1)
 
-    subprocess.run([sys.executable, "-m", "webbrowser", "-n", resp.json()["token-path"]], stdout=subprocess.DEVNULL)
+    token_path = resp.json()["token-path"]
+    gptscript = GPTScript()
+    try:
+        run = gptscript.run(
+            "sys.prompt",
+            Options(input=json.dumps(
+                {
+                    "message": f"Opening browser to {token_path}. " +
+                               "If there is an issue paste this link into a browser manually."
+                }
+            ))
+        )
+        await run.text()
+        subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
+    except:
+        pass
+    finally:
+        gptscript.close()
 
     token_resp = poll_for_token(gateway_url, token_request_id)
 
@@ -98,8 +117,9 @@ def poll_for_token(gateway_url: str, id: str) -> dict:
 if __name__ == "__main__":
     import asyncio
 
-    main()
+    asyncio.run(main())
     try:
         pass
     except (KeyboardInterrupt, asyncio.CancelledError):
-        pass
+        print("User cancelled")
+        exit(1)
