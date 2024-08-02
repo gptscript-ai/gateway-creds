@@ -83,7 +83,6 @@ def refresh_token(gateway_url: str, cred: str) -> (str, str):
 
 def calculate_expires_at(expires_at: str) -> str:
     expiration = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(hours=1)
-    print(expiration.isoformat(), file=sys.stderr)
     if expires_at != "":
         expiration = datetime.datetime.fromisoformat(expires_at)
         now = datetime.datetime.now(tz=expiration.tzinfo)
