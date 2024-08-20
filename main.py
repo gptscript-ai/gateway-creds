@@ -48,14 +48,18 @@ async def create_token(gateway_url: str, service_name: str) -> (str, str):
             Options(input=json.dumps(
                 {
                     "message": f"Opening browser to {token_path}. " +
-                               "If there is an issue paste this link into a browser manually."
+                               "If there is an issue paste this link into a browser manually.",
+                    "metadata": {"toolDisplayName": "Gateway Provider", "authURL": f"{token_path}",
+                                 "toolContext": "credential"}
                 }
             ))
         )
-        await run.text()
-        subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
-    except:
-        pass
+        out = await run.text()
+        # If the caller didn't open the browser, open it now
+        if out != "" and json.loads(out).get("handled", "") != "true":
+            subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
+    except Exception as e:
+        print(e)
     finally:
         gptscript.close()
 
