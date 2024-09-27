@@ -1,7 +1,7 @@
 anyio==4.4.0
 certifi==2024.2.2
 charset-normalizer==3.3.2
-gptscript @ git+https://github.com/gptscript-ai/py-gptscript.git@7cc23f5d8b747f3fd19970011c9b3e2fef983ba4
+gptscript @ git+https://github.com/gptscript-ai/py-gptscript.git@ac277320161c1ee70db4b209c893f66f03b2f5bb
 h11==0.14.0
 httpcore==1.0.5
 httpx==0.27.0
