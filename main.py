@@ -56,7 +56,7 @@ async def create_token(gateway_url: str, service_name: str) -> (str, str):
     )
     out = await run.text()
     # If the caller didn't open the browser, open it now
-    if out == "" or json.loads(out).get("handled", "") != "true":
+    if out == "" or out == "null" or json.loads(out).get("handled", "") != "true":
         subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
 
     token_resp = poll_for_token(gateway_url, token_request_id)
