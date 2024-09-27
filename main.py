@@ -42,10 +42,10 @@ async def create_token(gateway_url: str, service_name: str) -> (str, str):
 
     token_path = resp.json()["token-path"]
     gptscript = GPTScript()
-    try:
-        run = gptscript.run(
-            "sys.prompt",
-            Options(input=json.dumps(
+    run = gptscript.run(
+        "sys.prompt",
+        Options(
+            input=json.dumps(
                 {
                     "message": f"Opening browser to {token_path}. " +
                                "If there is an issue paste this link into a browser manually.",
@@ -53,15 +53,11 @@ async def create_token(gateway_url: str, service_name: str) -> (str, str):
                                  "toolContext": "credential"}
                 }
             ))
-        )
-        out = await run.text()
-        # If the caller didn't open the browser, open it now
-        if out != "" and json.loads(out).get("handled", "") != "true":
-            subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
-    except Exception as e:
-        print(e)
-    finally:
-        gptscript.close()
+    )
+    out = await run.text()
+    # If the caller didn't open the browser, open it now
+    if out != "" and json.loads(out).get("handled", "") != "true":
+        subprocess.run([sys.executable, "-m", "webbrowser", "-n", token_path], stdout=subprocess.DEVNULL)
 
     token_resp = poll_for_token(gateway_url, token_request_id)
 
@@ -99,8 +95,7 @@ def calculate_expires_at(expires_at: str) -> str:
 def create_token_request(gateway_url: str, id: str):
     resp = requests.post(f"{gateway_url}/api/token-request", json={"id": id})
     if resp.status_code != 200:
-        print(resp.text)
-        sys.exit(1)
+        raise Exception(resp.text)
 
 
 def poll_for_token(gateway_url: str, id: str) -> dict:
@@ -113,16 +108,17 @@ def poll_for_token(gateway_url: str, id: str) -> dict:
 
             sleep(1)
         else:
-            print(resp.text)
-            sys.exit(1)
+            raise Exception(resp.text)
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
     try:
-        pass
+        asyncio.run(main())
     except (KeyboardInterrupt, asyncio.CancelledError):
         print("User cancelled")
+        exit(1)
+    except Exception as e:
+        print(str(e))
         exit(1)
